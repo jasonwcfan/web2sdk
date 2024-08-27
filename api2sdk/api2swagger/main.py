@@ -297,6 +297,15 @@ def main(sdk_name: str, override_args: Optional[Sequence[str]] = None):
                         response_content_type = "application/msgpack"
                     except Exception:
                         response_parsed = None
+                
+                if response_parsed is None:
+                    # try parsing the response as text
+                    response_parsed = response_body.decode("utf-8", "ignore")
+                    response_content_type = req.get_response_headers().get("content-type")
+                    if type(response_content_type) is list:
+                        response_content_type = response_content_type[0]
+                    elif response_content_type is None:
+                        response_content_type = "text/plain"
 
                 if response_parsed is not None:
                     resp_data_to_set = {

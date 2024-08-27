@@ -95,7 +95,8 @@ def generate_imports() -> List[ast.Import]:
     ast.ImportFrom(module='typing', names=[
       ast.alias(name='Optional', asname=None), 
       ast.alias(name='Dict', asname=None), 
-      ast.alias(name='List', asname=None)], level=0),
+      ast.alias(name='List', asname=None),
+      ast.alias(name='Any', asname=None)], level=0),
   ]
   return imports
 

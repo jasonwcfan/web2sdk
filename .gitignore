@@ -3,6 +3,10 @@ __pycache__/
 *.py[cod]
 *$py.class
 
+# Generated files
+api2sdk/api2swagger/generated/
+api2sdk/swagger2sdk/generated/
+
 # C extensions
 *.so
 

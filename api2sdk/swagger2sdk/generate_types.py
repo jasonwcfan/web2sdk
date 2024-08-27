@@ -3,7 +3,7 @@ from pydantic import BaseModel, ConfigDict, Field, ValidationError
 from abc import ABC, abstractmethod
 from typing import List, Optional, Dict, Any, Tuple, Type, Union
 from enum import Enum
-from swagger2sdk.utils import YAMLToPydanticType
+from swagger2sdk.utils import YAMLToPydanticType, check_content_type
 
 class ClassField(BaseModel):
   field_name: str
@@ -63,12 +63,12 @@ def parse_request_body(request_body: dict) -> List[ClassField]:
   required: bool = request_body.get('required', False)
 
   for content_type, schema in content.items():
-    if content_type == 'application/json':
+    if check_content_type(content_type, ['application/json', 'application/x-www-form-urlencoded']):
       schema = schema['schema']
       schema_type = YAMLToPydanticType[schema.get('type')]
-      if schema_type == 'object':
-        required_properties: List[str] = schema['schema'].get('required', [])
-        properties: dict = schema['schema'].get('properties', {})
+      if schema.get('type') == 'object':
+        required_properties: List[str] = schema.get('required', [])
+        properties: dict = schema.get('properties', {})
         for name, prop in properties.items():
           field_type: str = YAMLToPydanticType[prop['type']]
           field_required: bool = name in required_properties
@@ -109,6 +109,7 @@ def generate_types(endpoint: dict) -> Tuple[ast.ClassDef]:
   request_parameters: dict = endpoint['parameters']
   request_body: dict = endpoint['request_body']
   responses: dict = endpoint['responses']
+
 
   # Generate Pydantic class for request parameters
   request_parameters_class = None

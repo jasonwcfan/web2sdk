@@ -1,6 +1,49 @@
 import ast
-from swagger2sdk.utils import AuthType
-from typing import Tuple
+from swagger2sdk.utils import AuthType, check_content_type
+from typing import Tuple, List
+
+def content_type_to_ast_node(content_type: str, class_name: str) -> ast.Call:
+  if check_content_type(content_type, ['application/json']):
+    # Get response.json()
+    response_json_attr = ast.Attribute(
+        value=ast.Name(id='response', ctx=ast.Load()),
+        attr='json',
+        ctx=ast.Load()
+    )
+    response_json_call = ast.Call(
+        func=response_json_attr,
+        args=[],
+        keywords=[]
+    )
+    # Instantiate the response class with response.json()
+    response_json_kwarg = ast.keyword(
+      arg=None,  # None indicates **kwargs
+      value=response_json_call
+    )
+    result_node = ast.Call(
+        func=ast.Name(id=class_name, ctx=ast.Load()),
+        args=[],
+        keywords=[response_json_kwarg]
+    )
+  elif check_content_type(content_type, ['text/html', 'text/plain']):
+    result_node = ast.Attribute(
+      value=ast.Name(id='response', ctx=ast.Load()),
+      attr='text',
+      ctx=ast.Load()
+    )
+  else:
+    result_node = ast.Name(id='response', ctx=ast.Load())
+  return result_node
+
+# Fallback in case a class could not be created for a particular endpoint. Return a primitive type instead.
+def get_return_type(content_type: str) -> ast.Name:
+  # import pdb; pdb.set_trace()
+  if check_content_type(content_type, ['application/json']):
+    return 'dict'
+  elif check_content_type(content_type, ['text/html', 'text/plain']):
+    return 'str'
+  else:
+    return 'Any'
 
 def generate_function_for_endpoint(endpoint: dict, auth_type: AuthType, types: Tuple[ast.ClassDef]) -> ast.FunctionDef:
   # Extract endpoint details
@@ -9,9 +52,13 @@ def generate_function_for_endpoint(endpoint: dict, auth_type: AuthType, types: T
   request_parameters: dict = endpoint['parameters']
   request_method: str = endpoint['method']
   request_schema: dict = endpoint['request_body']
+  request_content_type: str = next(iter(request_schema['content'].keys()), None) if request_schema else None
+  response_content: dict = endpoint['responses'].get('200', {}).get('content', {})
+  response_content_type: str = next(iter(response_content.keys()), "")
+  
   request_parameters_class_name = types[0].name if types[0] else 'dict'
   request_body_class_name = types[1].name if types[1] else 'dict'
-  response_class_name = types[2].name if types[2] else 'dict'
+  response_class_name = types[2].name if types[2] else get_return_type(response_content_type)
 
   # Construct the function arguments
   args = ast.arguments(
@@ -83,7 +130,19 @@ def generate_function_for_endpoint(endpoint: dict, auth_type: AuthType, types: T
   # Construct the HTTP request using the requests library
   keyword_args = []
   if request_schema:
-    keyword_args.append(ast.keyword(arg='json', value=ast.Name(id='request_body', ctx=ast.Load())))
+    import pdb; pdb.set_trace()
+    if check_content_type(request_content_type, ['application/json']):
+      keyword_args.append(ast.keyword(arg='json', value=ast.Name(id='request_body', ctx=ast.Load())))
+    elif check_content_type(request_content_type, ['application/x-www-form-urlencoded']):
+      keyword_args.append(ast.keyword(arg='data', value=ast.Call(
+        func=ast.Attribute(
+          value=ast.Name(id='request_body', ctx=ast.Load()),
+          attr='dict',
+          ctx=ast.Load()
+        ),
+        args=[],
+        keywords=[]
+      )))
   if auth_type == AuthType.BASIC:
     keyword_args.append(ast.keyword(arg='auth', value=ast.Call(
       func=ast.Name(id='HTTPBasicAuth', ctx=ast.Load()),
@@ -119,30 +178,10 @@ def generate_function_for_endpoint(endpoint: dict, auth_type: AuthType, types: T
     value=request_call
   )
 
-  # Get response.json()
-  response_json_attr = ast.Attribute(
-      value=ast.Name(id='response', ctx=ast.Load()),
-      attr='json',
-      ctx=ast.Load()
-  )
-  response_json_call = ast.Call(
-      func=response_json_attr,
-      args=[],
-      keywords=[]
-  )
-  # Instantiate the response class with response.json()
-  response_json_kwarg = ast.keyword(
-    arg=None,  # None indicates **kwargs
-    value=response_json_call
-  )
-  response_class_call = ast.Call(
-      func=ast.Name(id=response_class_name, ctx=ast.Load()),
-      args=[],
-      keywords=[response_json_kwarg]
-  )
+  response_node = content_type_to_ast_node(response_content_type, response_class_name)
   # Return statement
   return_stmt = ast.Return(
-    value=response_class_call
+    value=response_node
   )
 
   # Construct function body with the URL and response assignments
