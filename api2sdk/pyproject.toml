@@ -1,0 +1,21 @@
+[tool.poetry]
+name = "api2sdk"
+version = "0.1.0"
+description = ""
+authors = ["jasonwcfan <jason.wc.fan@gmail.com>"]
+readme = "README.md"
+
+[tool.poetry.dependencies]
+python = "^3.10"
+mitmproxy = "^10.1.1"
+"ruamel.yaml" = ">=0.17.32,<0.19.0"
+json-stream = "^2.3.2"
+msgpack = "^1.0.7"
+astor = "^0.8.1"
+pydantic = "^2.8.2"
+pyyaml = "^6.0.2"
+
+
+[build-system]
+requires = ["poetry-core"]
+build-backend = "poetry.core.masonry.api"
