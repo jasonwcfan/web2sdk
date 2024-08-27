@@ -8,7 +8,9 @@ from typing import List, Optional, Dict, Any, Tuple, Type, Union
 from enum import Enum
 from swagger2sdk.generate_function import generate_function_for_endpoint
 from swagger2sdk.generate_types import generate_types
-from swagger2sdk.types import AuthType, HTTPMethod
+from swagger2sdk.utils import AuthType, HTTPMethod
+
+swagger_path = '/Users/jasonfan/Documents/code/api2sdk/api2sdk/specs.yml'
 
 def load_yaml(file_path):
   with open(file_path, 'r') as file:
@@ -97,14 +99,14 @@ def generate_imports() -> List[ast.Import]:
   ]
   return imports
 
-def construct_sdk():
-  yaml_file = '/Users/jasonfan/Documents/code/api2sdk/specs.yml'
-  yaml_data = load_yaml(yaml_file)
-  base_url = 'https://api.finic.com'
-  sdk_name = 'FinicSDK'
+def construct_sdk(swagger_path: str, sdk_name: str, sdk_location: str = 'generated', base_url: str = None) -> None:
+  swagger = load_yaml(swagger_path)
+  base_url = swagger.get('servers', [{}])[0].get('url') if not base_url else base_url
+  if not base_url:
+    raise ValueError('Base URL is required, but was not provided in the OpenAPI spec or as an argument.')
   auth_type = AuthType.BEARER
 
-  paths = yaml_data.get('paths', {})
+  paths = swagger.get('paths', {})
   imports = generate_imports()
 
   class_def = generate_sdk_class(sdk_name, auth_type)
@@ -129,7 +131,7 @@ def construct_sdk():
   # Combine the imports, the SDK class, and generated types into a single module
   body = imports + types + [class_def]
   class_module = ast.Module(body=body, type_ignores=[])
-  save_class_to_file(class_module, f'generated_sdks/{sdk_name}.py')
+  save_class_to_file(class_module, f'{sdk_location}/{sdk_name}.py')
 
 if __name__ == '__main__':
-  construct_sdk()
+  construct_sdk(swagger_path, 'FinicSDK', 'https://api.finic.com')

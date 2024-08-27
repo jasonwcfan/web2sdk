@@ -56,8 +56,7 @@ def detect_input_format(file_path):
         return HarCaptureReader(file_path, progress_callback)
     return MitmproxyCaptureReader(file_path, progress_callback)
 
-
-def main(override_args: Optional[Sequence[str]] = None):
+def main(sdk_name: str, override_args: Optional[Sequence[str]] = None):
     parser = argparse.ArgumentParser(
         description="Converts a mitmproxy dump file or HAR to a swagger schema."
     )
@@ -105,7 +104,6 @@ def main(override_args: Optional[Sequence[str]] = None):
         help="Do not include API paths that have the original parameter values, only the ones with placeholders.",
     )
     args = parser.parse_args(override_args)
-
     try:
         args.param_regex = re.compile("^" + args.param_regex + "$")
     except re.error as e:
@@ -140,7 +138,7 @@ def main(override_args: Optional[Sequence[str]] = None):
             {
                 "openapi": "3.0.0",
                 "info": {
-                    "title": args.input + " Mitmproxy2Swagger",
+                    "title ": args.input + sdk_name,
                     "version": "1.0.0",
                 },
             }
@@ -163,17 +161,11 @@ def main(override_args: Optional[Sequence[str]] = None):
     if "x-path-templates" not in swagger or swagger["x-path-templates"] is None:
         swagger["x-path-templates"] = []
 
+    # add existing path templates
     path_templates = []
     for path in swagger["paths"]:
         path_templates.append(path)
 
-    # also add paths from the the x-path-templates array
-    if "x-path-templates" in swagger and swagger["x-path-templates"] is not None:
-        for path in swagger["x-path-templates"]:
-            path_templates.append(path)
-
-    # new endpoints will be added here so that they can be added as comments in the swagger file
-    new_path_templates = []
     path_template_regexes = [re.compile(path_to_regex(path)) for path in path_templates]
 
     try:
@@ -194,12 +186,10 @@ def main(override_args: Optional[Sequence[str]] = None):
                     path_template_index = i
                     break
             if path_template_index is None:
-                if path in new_path_templates:
-                    continue
-                new_path_templates.append(path)
-                continue
-
-            path_template_to_set = path_templates[path_template_index]
+                path_template_to_set = path
+            else:
+                path_template_to_set = path_templates[path_template_index]
+            
             set_key_if_not_exists(swagger["paths"], path_template_to_set, {})
 
             set_key_if_not_exists(
@@ -372,64 +362,6 @@ def main(override_args: Optional[Sequence[str]] = None):
             )
         sys.exit(1)
 
-    def is_param(param_value):
-        return args.param_regex.match(param_value) is not None
-
-    new_path_templates.sort()
-
-    # add suggested path templates
-    # basically inspects urls and replaces segments containing only numbers with a parameter
-    new_path_templates_with_suggestions = []
-    for path in new_path_templates:
-        # check if path contains number-only segments
-        segments = path.split("/")
-        has_param = any(is_param(segment) for segment in segments)
-        if has_param:
-            # replace digit segments with {id}, {id1}, {id2} etc
-            new_segments = []
-            param_id = 0
-            for segment in segments:
-                if is_param(segment):
-                    param_name = "id" + str(param_id)
-                    if param_id == 0:
-                        param_name = "id"
-                    new_segments.append("{" + param_name + "}")
-                    param_id += 1
-                else:
-                    new_segments.append(segment)
-            suggested_path = "/".join(new_segments)
-            # prepend the suggested path to the new_path_templates list
-            if suggested_path not in new_path_templates_with_suggestions:
-                new_path_templates_with_suggestions.append("ignore:" + suggested_path)
-
-        if not has_param or not args.suppress_params:
-            new_path_templates_with_suggestions.append("ignore:" + path)
-
-    # remove the ending comments not to add them twice
-
-    # append the contents of new_path_templates_with_suggestions to swagger['x-path-templates']
-    for path in new_path_templates_with_suggestions:
-        swagger["x-path-templates"].append(path)
-
-    # remove elements already generated
-    swagger["x-path-templates"] = [
-        path for path in swagger["x-path-templates"] if path not in swagger["paths"]
-    ]
-
-    # remove duplicates while preserving order
-    def f7(seq):
-        seen = set()
-        seen_add = seen.add
-        return [x for x in seq if not (x in seen or seen_add(x))]
-
-    swagger["x-path-templates"] = f7(swagger["x-path-templates"])
-
-    swagger["x-path-templates"] = ruamel.yaml.comments.CommentedSeq(
-        swagger["x-path-templates"]
-    )
-    swagger["x-path-templates"].yaml_set_start_comment(
-        "Remove the ignore: prefix to generate an endpoint with its URL\nLines that are closer to the top take precedence, the matching is greedy"
-    )
     # save the swagger file
     with open(args.output, "w") as f:
         yaml.dump(swagger, f)

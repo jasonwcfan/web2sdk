@@ -1,5 +1,5 @@
 import ast
-from swagger2sdk.types import AuthType
+from swagger2sdk.utils import AuthType
 from typing import Tuple
 
 def generate_function_for_endpoint(endpoint: dict, auth_type: AuthType, types: Tuple[ast.ClassDef]) -> ast.FunctionDef:
