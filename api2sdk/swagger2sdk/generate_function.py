@@ -37,7 +37,6 @@ def content_type_to_ast_node(content_type: str, class_name: str) -> ast.Call:
 
 # Fallback in case a class could not be created for a particular endpoint. Return a primitive type instead.
 def get_return_type(content_type: str) -> ast.Name:
-  # import pdb; pdb.set_trace()
   if check_content_type(content_type, ['application/json']):
     return 'dict'
   elif check_content_type(content_type, ['text/html', 'text/plain']):
@@ -78,59 +77,72 @@ def generate_function_for_endpoint(endpoint: dict, auth_type: AuthType, types: T
   return_annotation = ast.Name(id=response_class_name, ctx=ast.Load())
 
   # Construct the URL with parameters (dynamic based on `request_parameters`)
+  path_assign = ast.Assign(
+    targets=[ast.Name(id='path', ctx=ast.Store())],
+    value=ast.Constant(value=request_path)
+  )
   if request_parameters:
-    url_assign = ast.Assign(
-      targets=[ast.Name(id='url', ctx=ast.Store())],
-      value=ast.BinOp(
-        left=ast.Constant(value=request_path + "?"),
-        op=ast.Add(),
-        right=ast.Call(
-          func=ast.Attribute(
-            value=ast.Str(s="&"),
-            attr="join",
-            ctx=ast.Load()
-          ),
-          args=[ast.ListComp(
-            elt=ast.BinOp(
-              left=ast.BinOp(
-                left=ast.Name(id='k', ctx=ast.Load()),
-                op=ast.Add(),
-                right=ast.Constant(value="=")
-              ),
+    parameter_assign = ast.Assign(
+      targets=[ast.Name(id='params', ctx=ast.Store())],
+      value=ast.Call(
+        func=ast.Attribute(
+          value=ast.Str(s="&"),
+          attr="join",
+          ctx=ast.Load()
+        ),
+        args=[ast.ListComp(
+          elt=ast.BinOp(
+            left=ast.BinOp(
+              left=ast.Name(id='k', ctx=ast.Load()),
               op=ast.Add(),
-              right=ast.Name(id='v', ctx=ast.Load())
+              right=ast.Constant(value="=")
             ),
-            generators=[
-              ast.comprehension(
-                target=ast.Tuple(elts=[
-                  ast.Name(id='k', ctx=ast.Store()), 
-                  ast.Name(id='v', ctx=ast.Store())], ctx=ast.Store()),
-                iter=ast.Call(
-                  func=ast.Attribute(
-                    value=ast.Name(id='request_parameters', ctx=ast.Load()),
-                    attr='items',
-                    ctx=ast.Load()
-                  ),
-                  args=[], keywords=[]
+            op=ast.Add(),
+            right=ast.Name(id='v', ctx=ast.Load())
+          ),
+          generators=[
+            ast.comprehension(
+              target=ast.Tuple(elts=[
+                ast.Name(id='k', ctx=ast.Store()), 
+                ast.Name(id='v', ctx=ast.Store())], ctx=ast.Store()),
+              iter=ast.Call(
+                func=ast.Attribute(
+                  value=ast.Name(id='request_parameters', ctx=ast.Load()),
+                  attr='items',
+                  ctx=ast.Load()
                 ),
-                ifs=[], is_async=0
-              )
-            ]
-          )],
-          keywords=[]
-        )
+                args=[], keywords=[]
+              ),
+              ifs=[], is_async=0
+            )
+          ]
+        )],
+        keywords=[]
       )
     )
   else:
-    url_assign = ast.Assign(
-      targets=[ast.Name(id='url', ctx=ast.Store())],
-      value=ast.Constant(value=request_path)
+    parameter_assign = ast.Assign(
+      targets=[ast.Name(id='params', ctx=ast.Store())],
+      value=ast.Constant(value="")
     )
+  
+  # Combine the base_url, path, and parameters into the final url_assign
+  url_assign = ast.Assign(
+    targets=[ast.Name(id='url', ctx=ast.Store())],
+    value=ast.BinOp(
+      left=ast.BinOp(
+        left=ast.Name(id='self.base_url', ctx=ast.Load()),
+        op=ast.Add(),
+        right=ast.Name(id='path', ctx=ast.Load())
+      ),
+      op=ast.Add(),
+      right=ast.Name(id='params', ctx=ast.Load())
+    )
+  )
 
   # Construct the HTTP request using the requests library
   keyword_args = []
   if request_schema:
-    import pdb; pdb.set_trace()
     if check_content_type(request_content_type, ['application/json']):
       keyword_args.append(ast.keyword(arg='json', value=ast.Name(id='request_body', ctx=ast.Load())))
     elif check_content_type(request_content_type, ['application/x-www-form-urlencoded']):
@@ -186,6 +198,8 @@ def generate_function_for_endpoint(endpoint: dict, auth_type: AuthType, types: T
 
   # Construct function body with the URL and response assignments
   function_body = [
+    path_assign,
+    parameter_assign,
     url_assign,
     response_assign,
     return_stmt

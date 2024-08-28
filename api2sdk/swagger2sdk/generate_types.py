@@ -3,24 +3,18 @@ from pydantic import BaseModel, ConfigDict, Field, ValidationError
 from abc import ABC, abstractmethod
 from typing import List, Optional, Dict, Any, Tuple, Type, Union
 from enum import Enum
-from swagger2sdk.utils import YAMLToPydanticType, check_content_type
+from swagger2sdk.utils import YAMLToPydanticType, check_content_type, snake_to_pascal, dash_to_snake
 
 class ClassField(BaseModel):
   field_name: str
   field_type: str
   required: bool
-
-def snake_to_pascal(snake_str: str) -> str:
-    components = snake_str.split('_')
-    return ''.join(x.capitalize() for x in components)
    
 
 def generate_class_def(class_name: str, fields: List[ClassField]) -> ast.ClassDef:
     """
     Generates a Pydantic class definition with the given class name and fields.
     """
-    if len(fields) == 0:
-      return None
     # Create the class definition
     class_def = ast.ClassDef(
         name=class_name,
@@ -31,7 +25,7 @@ def generate_class_def(class_name: str, fields: List[ClassField]) -> ast.ClassDe
     
     # Add each field as a class attribute
     for field in fields:
-      field_name, field_type, required = field.field_name, field.field_type, field.required
+      field_name, field_type, required = dash_to_snake(field.field_name), field.field_type, field.required
       
       # If the field is not required, wrap the type in Optional
       if not required:
@@ -120,25 +114,23 @@ def generate_types(endpoint: dict) -> Tuple[ast.ClassDef]:
       field_name = param['name']
       required = param.get('required', False)
       request_parameters_fields.append(ClassField(field_name=field_name, field_type=field_type, required=required))
-    request_parameters_class = generate_class_def(f'{request_name}RequestParameters', request_parameters_fields)
+    if len(request_parameters_fields) > 0:
+      request_parameters_class = generate_class_def(f'{request_name}RequestParameters', request_parameters_fields)
 
   # Generate Pydantic class for request body
   request_body_class = None
   if request_body:
     request_body_fields = parse_request_body(request_body)
-    request_body_class = generate_class_def(f'{request_name}RequestBody', request_body_fields)
+    if len(request_body_fields) > 0:
+      request_body_class = generate_class_def(f'{request_name}RequestBody', request_body_fields)
 
   # Generate Pydantic classes for responses
   successful_response = responses.get('200')
   response_class = None
   if successful_response:
     response_fields = parse_response_body(successful_response)
-    response_class = generate_class_def(f'{request_name}Response', response_fields)
+    if len(response_fields) > 0:
+      response_class = generate_class_def(f'{request_name}Response', response_fields)
 
-  # # Return all generated classes as a module
-  # module = ast.Module(
-  #   body=[request_parameters_class, request_body_class],
-  #   type_ignores=[]
-  # )
   
   return (request_parameters_class, request_body_class, response_class)

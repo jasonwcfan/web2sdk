@@ -14,6 +14,7 @@ msgpack = "^1.0.7"
 astor = "^0.8.1"
 pydantic = "^2.8.2"
 pyyaml = "^6.0.2"
+requests = "^2.32.3"
 
 
 [build-system]

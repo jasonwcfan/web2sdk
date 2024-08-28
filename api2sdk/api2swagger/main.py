@@ -158,8 +158,9 @@ def main(sdk_name: str, override_args: Optional[Sequence[str]] = None):
     if "paths" not in swagger or swagger["paths"] is None:
         swagger["paths"] = {}
 
-    if "x-path-templates" not in swagger or swagger["x-path-templates"] is None:
-        swagger["x-path-templates"] = []
+    # Add the component/securitySchemes section if it doesn't exist
+    if "components" not in swagger or swagger["components"] is None:
+        swagger["components"] = {}
 
     # add existing path templates
     path_templates = []

@@ -7,6 +7,7 @@ from enum import Enum
 class AuthType(Enum):
   BASIC = 'basic'
   BEARER = 'bearer'
+  NONE = 'none'
 
 class HTTPMethod(Enum):
   GET = 'GET'
@@ -28,3 +29,10 @@ def check_content_type(input_string: str, patterns: List[str]):
     if re.search(regex_pattern, input_string):
         return True
     return False
+
+def snake_to_pascal(snake_str: str) -> str:
+    components = snake_str.split('_')
+    return ''.join(x.capitalize() for x in components)
+
+def dash_to_snake(dash_str: str) -> str:
+    return dash_str.replace('-', '_')

@@ -7,7 +7,7 @@ from abc import ABC, abstractmethod
 from typing import List, Optional, Dict, Any, Tuple, Type, Union
 from enum import Enum
 from swagger2sdk.generate_function import generate_function_for_endpoint
-from swagger2sdk.generate_types import generate_types
+from swagger2sdk.generate_types import generate_types, generate_class_def, ClassField
 from swagger2sdk.utils import AuthType, HTTPMethod
 
 swagger_path = '/Users/jasonfan/Documents/code/api2sdk/api2sdk/specs.yml'
@@ -20,66 +20,17 @@ def load_yaml(file_path):
 def generate_sdk_class(sdk_name: str, auth_type: AuthType) -> ast.ClassDef:
   # SDK should accept different arguments depending on the auth type
   auth_arguments = []
-  auth_nodes = []
-  if auth_type == AuthType.BASIC:
-    auth_arguments.append(ast.arg(arg='username', annotation=ast.Name(id='str', ctx=ast.Load())))
-    auth_arguments.append(ast.arg(arg='password', annotation=ast.Name(id='str', ctx=ast.Load())))
-    auth_nodes.append(ast.Assign(
-      targets=[ast.Attribute(value=ast.Name(id='self', ctx=ast.Load()), attr='username', ctx=ast.Store())],
-      value=ast.Name(id='username', ctx=ast.Load())
-    ))
-    auth_nodes.append(ast.Assign(
-      targets=[ast.Attribute(value=ast.Name(id='self', ctx=ast.Load()), attr='password', ctx=ast.Store())],
-      value=ast.Name(id='password', ctx=ast.Load())
-    ))
-  elif auth_type == AuthType.BEARER:
-    auth_arguments.append(ast.arg(arg='token', annotation=ast.Name(id='str', ctx=ast.Load())))
-    auth_nodes.append(ast.Assign(
-      targets=[ast.Attribute(value=ast.Name(id='self', ctx=ast.Load()), attr='token', ctx=ast.Store())],
-      value=ast.Name(id='token', ctx=ast.Load())
-    ))
-    
-
-  args = ast.arguments(
-    args=[
-      ast.arg(arg='self', annotation=None),
-      ast.arg(arg='base_url', annotation=ast.Name(id='str', ctx=ast.Load())),
-      *auth_arguments
-    ],
-    vararg=None,
-    kwonlyargs=[],
-    kw_defaults=[],
-    kwarg=None,
-    defaults=[]
-  )
-
-  # Create the __init__ method
-  init_body = [
-    ast.Assign(
-      targets=[ast.Attribute(value=ast.Name(id='self', ctx=ast.Load()), attr='base_url', ctx=ast.Store())],
-      value=ast.Name(id='base_url', ctx=ast.Load())
-    ),
-    *auth_nodes
+  fields = [
+    ClassField(field_name='base_url', field_type='str', required=True),
+    ClassField(field_name='auth_type', field_type='str', required=False)
   ]
+  if auth_type == AuthType.BASIC:
+    fields = [ClassField(field_name='username', field_type='str', required=True), ClassField(field_name='password', field_type='str', required=True)]
+  elif auth_type == AuthType.BEARER:
+    fields = [ClassField(field_name='token', field_type='str', required=True)]
 
-  init_method = ast.FunctionDef(
-    name='__init__',
-    args=args,
-    body=init_body,
-    decorator_list=[],
-    returns=None
-  )
+  class_def = generate_class_def(sdk_name, fields)
 
-    # Create the base class definition
-  class_def = ast.ClassDef(
-    name=sdk_name,
-    keywords=[],
-    bases=[ast.Name(id='BaseModel', ctx=ast.Load())],
-    body=[init_method],
-    decorator_list=[],
-  )
-
-  # Convert AST to source code using ast.unparse
   return class_def
 
 def save_class_to_file(module: ast.Module, file_path: str) -> None:
@@ -100,12 +51,11 @@ def generate_imports() -> List[ast.Import]:
   ]
   return imports
 
-def construct_sdk(swagger_path: str, sdk_name: str, sdk_location: str = 'generated', base_url: str = None) -> None:
+def construct_sdk(swagger_path: str, sdk_name: str, sdk_location: str = 'generated', base_url: str = None, auth_type = AuthType.NONE) -> None:
   swagger = load_yaml(swagger_path)
   base_url = swagger.get('servers', [{}])[0].get('url') if not base_url else base_url
   if not base_url:
     raise ValueError('Base URL is required, but was not provided in the OpenAPI spec or as an argument.')
-  auth_type = AuthType.BEARER
 
   paths = swagger.get('paths', {})
   imports = generate_imports()
