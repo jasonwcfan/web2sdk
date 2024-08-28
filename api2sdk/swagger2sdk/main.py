@@ -4,7 +4,7 @@ import astor
 import yaml
 from pydantic import BaseModel, ConfigDict, Field, ValidationError
 from abc import ABC, abstractmethod
-from typing import List, Optional, Dict, Any, Tuple, Type, Union
+from typing import List, Optional, Dict, Any, Tuple, Type, Union, Callable
 from enum import Enum
 from swagger2sdk.generate_function import generate_function_for_endpoint
 from swagger2sdk.generate_types import generate_types, generate_class_def, ClassField
@@ -51,7 +51,12 @@ def generate_imports() -> List[ast.Import]:
   ]
   return imports
 
-def construct_sdk(swagger_path: str, sdk_name: str, sdk_location: str = 'generated', base_url: str = None, auth_type = AuthType.NONE) -> None:
+def construct_sdk(swagger_path: str, 
+                  sdk_name: str, 
+                  output_path: str, 
+                  base_url: str = None, 
+                  auth_type = AuthType.NONE,
+                  progress_callback: Callable[[float], None] = None) -> None:
   swagger = load_yaml(swagger_path)
   base_url = swagger.get('servers', [{}])[0].get('url') if not base_url else base_url
   if not base_url:
@@ -64,7 +69,7 @@ def construct_sdk(swagger_path: str, sdk_name: str, sdk_location: str = 'generat
   types: List[ast.ClassDef] = []
 
   # Iterate through each path and method. Generate functions to call each endpoint, and types to validate request/response bodies
-  for path, methods in paths.items():
+  for index, (path, methods) in enumerate(paths.items()):
     for method, details in methods.items():
       endpoint = {
         'path': path,
@@ -78,11 +83,10 @@ def construct_sdk(swagger_path: str, sdk_name: str, sdk_location: str = 'generat
       _function = generate_function_for_endpoint(endpoint, auth_type, _types)
       class_def.body.append(_function)
       types.extend([t for t in _types if t is not None])
+    if progress_callback:
+      progress_callback(float(index+1) / len(paths))
 
   # Combine the imports, the SDK class, and generated types into a single module
   body = imports + types + [class_def]
   class_module = ast.Module(body=body, type_ignores=[])
-  save_class_to_file(class_module, f'{sdk_location}/{sdk_name}.py')
-
-if __name__ == '__main__':
-  construct_sdk(swagger_path, 'FinicSDK', 'https://api.finic.com')
+  save_class_to_file(class_module, f'{output_path}/{sdk_name}.py')

@@ -103,7 +103,7 @@ def parse_response_body(response_body: dict) -> List[ClassField]:
 def generate_types(endpoint: dict) -> Tuple[ast.ClassDef]:
   # Extract endpoint details
   request_path: str = endpoint['path']
-  request_name: str = snake_to_pascal(endpoint['name'])
+  request_name: str = endpoint['name']
   request_method: str = endpoint['method']
   request_parameters: dict = endpoint['parameters']
   request_body: dict = endpoint['request_body']

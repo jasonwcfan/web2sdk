@@ -14,7 +14,7 @@ import msgpack
 import ruamel.yaml
 from mitmproxy.exceptions import FlowReadException
 
-from api2swagger import console_util
+import console_util
 from api2swagger import swagger_util
 from api2swagger.har_capture_reader import HarCaptureReader, har_archive_heuristic
 from api2swagger.mitmproxy_capture_reader import (
@@ -43,7 +43,7 @@ def set_key_if_not_exists(dict, key, value):
 
 
 def progress_callback(progress):
-    console_util.print_progress_bar(progress)
+    console_util.print_progress_bar(progress, "Generating OpenAPI Schema...")
 
 
 def detect_input_format(file_path):
@@ -132,7 +132,7 @@ def main(sdk_name: str, override_args: Optional[Sequence[str]] = None):
         with open(abs_path, "r") as f:
             swagger = yaml.load(f)
     except FileNotFoundError:
-        print("No existing swagger file found. Creating new one.")
+        print("No existing OpenAPI file found. Creating new one.")
     if swagger is None:
         swagger = ruamel.yaml.comments.CommentedMap(
             {
@@ -301,7 +301,10 @@ def main(sdk_name: str, override_args: Optional[Sequence[str]] = None):
                 
                 if response_parsed is None:
                     # try parsing the response as text
-                    response_parsed = response_body.decode("utf-8", "ignore")
+                    if type(response_body) is str:
+                        response_parsed = response_body
+                    else:
+                        response_parsed = response_body.decode("utf-8", "ignore")
                     response_content_type = req.get_response_headers().get("content-type")
                     if type(response_content_type) is list:
                         response_content_type = response_content_type[0]
@@ -375,7 +378,7 @@ def main(sdk_name: str, override_args: Optional[Sequence[str]] = None):
     # save the swagger file
     with open(args.output, "w") as f:
         yaml.dump(swagger, f)
-    print("Done!")
+    print(" Done!")
 
 
 if __name__ == "__main__":

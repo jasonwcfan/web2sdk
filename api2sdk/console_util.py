@@ -37,7 +37,7 @@ def rainbow_at_position(progress):
     )
 
 
-def print_progress_bar(progress=0.0):
+def print_progress_bar(progress=0.0, label=""):
     sys.stdout.write("\r")
     progress_bar_contents = ""
     PROGRESS_LENGTH = 30
@@ -64,5 +64,5 @@ def print_progress_bar(progress=0.0):
             progress_bar_contents += " "
 
     progress_bar_contents += ANSI_RESET
-    sys.stdout.write("[{}] {:.1f}%".format(progress_bar_contents, progress * 100))
+    sys.stdout.write("{} [{}] {:.1f}%".format(label, progress_bar_contents, progress * 100))
     sys.stdout.flush()

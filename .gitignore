@@ -3,12 +3,9 @@ __pycache__/
 *.py[cod]
 *$py.class
 
-# Requests and generated files
+# Request logs and generated files
 */generated/
 *.har
-
-# Test files
-test_data/
 
 # C extensions
 *.so
