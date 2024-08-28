@@ -3,11 +3,12 @@ __pycache__/
 *.py[cod]
 *$py.class
 
-# Generated files
-api2sdk/api2swagger/generated/*
-!api2sdk/api2swagger/generated/
-api2sdk/swagger2sdk/generated/*
-!api2sdk/swagger2sdk/generated/
+# Requests and generated files
+*/generated/
+*.har
+
+# Test files
+test_data/
 
 # C extensions
 *.so

@@ -3,12 +3,18 @@ from pydantic import BaseModel, ConfigDict, Field, ValidationError
 from abc import ABC, abstractmethod
 from typing import List, Optional, Dict, Any, Tuple, Type, Union
 from enum import Enum
-from swagger2sdk.utils import YAMLToPydanticType, check_content_type, snake_to_pascal, dash_to_snake
+from swagger2sdk.utils import YAMLToPydanticType, check_content_type, snake_to_pascal, dash_to_snake, strip_special_chars
 
 class ClassField(BaseModel):
   field_name: str
   field_type: str
   required: bool
+
+def path_to_class_name(path: str) -> str:
+  """
+  Converts a URL path to a class name.
+  """
+  return strip_special_chars(snake_to_pascal(dash_to_snake(path)))
    
 
 def generate_class_def(class_name: str, fields: List[ClassField]) -> ast.ClassDef:
@@ -25,7 +31,7 @@ def generate_class_def(class_name: str, fields: List[ClassField]) -> ast.ClassDe
     
     # Add each field as a class attribute
     for field in fields:
-      field_name, field_type, required = dash_to_snake(field.field_name), field.field_type, field.required
+      field_name, field_type, required = strip_special_chars(dash_to_snake(field.field_name)), field.field_type, field.required
       
       # If the field is not required, wrap the type in Optional
       if not required:
@@ -88,11 +94,10 @@ def parse_response_body(response_body: dict) -> List[ClassField]:
           is_required: bool = name in required_properties
           fields.append(ClassField(field_name=name, field_type=field_type, required=is_required))
       elif schema_type == 'array':
-        item_type = schema['items']['type']
+        item_type = schema['items'].get('type', 'unknown')
         fields.append(ClassField(field_name='data', field_type=f'List[{YAMLToPydanticType[item_type]}]', required=True))
       else:
         fields.append(ClassField(field_name='data', field_type=YAMLToPydanticType[schema_type], required=True))
-  
   return fields
 
 def generate_types(endpoint: dict) -> Tuple[ast.ClassDef]:
@@ -115,14 +120,14 @@ def generate_types(endpoint: dict) -> Tuple[ast.ClassDef]:
       required = param.get('required', False)
       request_parameters_fields.append(ClassField(field_name=field_name, field_type=field_type, required=required))
     if len(request_parameters_fields) > 0:
-      request_parameters_class = generate_class_def(f'{request_name}RequestParameters', request_parameters_fields)
+      request_parameters_class = generate_class_def(f'{path_to_class_name(request_name)}RequestParameters', request_parameters_fields)
 
   # Generate Pydantic class for request body
   request_body_class = None
   if request_body:
     request_body_fields = parse_request_body(request_body)
     if len(request_body_fields) > 0:
-      request_body_class = generate_class_def(f'{request_name}RequestBody', request_body_fields)
+      request_body_class = generate_class_def(f'{path_to_class_name(request_name)}RequestBody', request_body_fields)
 
   # Generate Pydantic classes for responses
   successful_response = responses.get('200')
@@ -130,7 +135,7 @@ def generate_types(endpoint: dict) -> Tuple[ast.ClassDef]:
   if successful_response:
     response_fields = parse_response_body(successful_response)
     if len(response_fields) > 0:
-      response_class = generate_class_def(f'{request_name}Response', response_fields)
+      response_class = generate_class_def(f'{path_to_class_name(request_name)}Response', response_fields)
 
   
   return (request_parameters_class, request_body_class, response_class)

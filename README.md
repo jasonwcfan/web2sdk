@@ -36,9 +36,10 @@ Api2sdk is a set of tools for reverse engineering APIs. Api2sdk records network 
     ```
     Generated files will be saved in the current directory if the `--output` flag is not provided.
 
-### 🚧 Proposed Improvements
-- Support for oauth and custom auth schemes via header parsing
-- Automatic token refreshes
+### 🚧 Futre Improvements
+- Support for oauth and custom auth schemes that use header and url params
+- Automatic auth token refresh
+- Support for templated API paths (e.g. `https://api.claude.ai/api/organizations/{organization_id}/chat_conversations`)
 - LLM integration to generate class names and example request payloads
 - Include a linter/formatter to make generated SDK more readable
 

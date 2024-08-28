@@ -16,13 +16,15 @@ class HTTPMethod(Enum):
   PATCH = 'PATCH'
   DELETE = 'DELETE'
 
-class YAMLToPydanticType(Enum):
-  string = 'str'
-  number = 'float'
-  integer = 'int'
-  boolean = 'bool'
-  array = 'List'
-  object = 'Dict'
+YAMLToPydanticType = {
+  'string': 'str',
+  'number': 'float',
+  'integer': 'int',
+  'boolean': 'bool',
+  'array': 'List',
+  'object': 'Dict',
+  'unknown': 'Any'
+}
 
 def check_content_type(input_string: str, patterns: List[str]):
     regex_pattern = "|".join(re.escape(pattern) for pattern in patterns)
@@ -36,3 +38,6 @@ def snake_to_pascal(snake_str: str) -> str:
 
 def dash_to_snake(dash_str: str) -> str:
     return dash_str.replace('-', '_')
+
+def strip_special_chars(input_string: str) -> str:
+    return re.sub(r'[^\w_]+', '', input_string)

@@ -8,13 +8,13 @@ from api2swagger.main import main as api2swagger_main
 from swagger2sdk.main import construct_sdk
 
 def show_loading_indicator(stop_event):
-    for char in itertools.cycle(['|', '/', '-', '\\']):
-        if stop_event.is_set():
-            break
-        sys.stdout.write(f'\Working... {char}')
-        sys.stdout.flush()
-        time.sleep(0.1)
-    sys.stdout.write('\rDone!          \n')
+  for char in itertools.cycle(['|', '/', '-', '\\']):
+    if stop_event.is_set():
+      break
+    sys.stdout.write('\rWorking... ' + char)
+    sys.stdout.flush()
+    time.sleep(0.1)
+  sys.stdout.write('\rDone!          \n')
 
 def main():
   parser = argparse.ArgumentParser(
@@ -53,15 +53,22 @@ def main():
 
   sdk_location = "swagger2sdk/generated"
 
+  stop_event = threading.Event()
+  loading_thread = threading.Thread(target=show_loading_indicator, args=(stop_event,))
+
   if not args.interactive:
     if not args.requests_path or not args.sdk_name or not args.base_url:
       parser.error("--requests-path, --sdk-name, and --base-url are required when not running in --interactive mode.")
     
     openapi_path = f"api2swagger/generated/{args.sdk_name}.yaml"
-   
+    
+    loading_thread.start()
+
     api2swagger_main(args.sdk_name, ["--input", args.requests_path, "--output", openapi_path, "--api-prefix", args.base_url, "--format", "flow"])
     print("OpenAPI schema generated successfully at: ", openapi_path)
     construct_sdk(openapi_path, args.sdk_name, sdk_location)
+    stop_event.set()
+    loading_thread.join()
     print("SDK generated successfully at: ", f"{sdk_location}/{args.sdk_name}.py")
   else:
     while True:
@@ -70,21 +77,19 @@ def main():
       sdk_name = input("Enter a name for the generated SDK (e.g. FinicAPI): ")
       openapi_path = f"api2swagger/generated/{sdk_name}.yaml"
 
-      # stop_event = threading.Event()
-      # loading_thread = threading.Thread(target=show_loading_indicator, args=(stop_event,))
-      
-      # loading_thread.start()
+      loading_thread.start()
       api2swagger_main(sdk_name, ["--input", requests_path, "--output", openapi_path, "--api-prefix", base_url, "--format", "flow"])
-      # stop_event.set()
-      # loading_thread.join()
-
+      print("OpenAPI schema generated successfully at: ", openapi_path)
+      stop_event.set()
+      loading_thread.join()
+      
       should_generate_sdk = input("Do you want to generate the SDK now? (y/n): ")
       if should_generate_sdk.lower() in ["y", "yes", ""]:
-        # loading_thread.start()
+        loading_thread.start()
         construct_sdk(openapi_path, sdk_name, sdk_location)
-        # stop_event.set()
-        # loading_thread.join()
         print("SDK generated successfully at: ", f"{sdk_location}/{sdk_name}.py")
+        stop_event.set()
+        loading_thread.join()
         break
       elif should_generate_sdk.lower() in ["n", "no"]:
         break

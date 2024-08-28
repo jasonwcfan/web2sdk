@@ -1,5 +1,5 @@
 import ast
-from swagger2sdk.utils import AuthType, check_content_type
+from swagger2sdk.utils import AuthType, check_content_type, dash_to_snake
 from typing import Tuple, List
 
 def content_type_to_ast_node(content_type: str, class_name: str) -> ast.Call:
@@ -207,7 +207,7 @@ def generate_function_for_endpoint(endpoint: dict, auth_type: AuthType, types: T
 
   # Create the function definition
   function_def = ast.FunctionDef(
-    name=request_name,
+    name=dash_to_snake(request_name),
     args=args,
     body=function_body,
     decorator_list=[],
