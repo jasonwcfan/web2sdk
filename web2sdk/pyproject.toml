@@ -1,5 +1,5 @@
 [tool.poetry]
-name = "api2sdk"
+name = "web2sdk"
 version = "0.0.1"
 description = "Reverse engineer third party APIs into python SDKs"
 authors = ["jasonwcfan <jason.wc.fan@gmail.com>"]

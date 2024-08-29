@@ -10,7 +10,7 @@ from swagger2sdk.generate_function import generate_function_for_endpoint
 from swagger2sdk.generate_types import generate_types, generate_class_def, ClassField
 from swagger2sdk.utils import AuthType, HTTPMethod
 
-swagger_path = '/Users/jasonfan/Documents/code/api2sdk/api2sdk/specs.yml'
+swagger_path = '/Users/jasonfan/Documents/code/web2sdk/web2sdk/specs.yml'
 
 def load_yaml(file_path):
   with open(file_path, 'r') as file:
@@ -21,13 +21,12 @@ def generate_sdk_class(sdk_name: str, auth_type: AuthType) -> ast.ClassDef:
   # SDK should accept different arguments depending on the auth type
   auth_arguments = []
   fields = [
-    ClassField(field_name='base_url', field_type='str', required=True),
-    ClassField(field_name='auth_type', field_type='str', required=False)
+    ClassField(field_name='base_url', field_type='str', required=True)
   ]
-  if auth_type == AuthType.BASIC:
-    fields = [ClassField(field_name='username', field_type='str', required=True), ClassField(field_name='password', field_type='str', required=True)]
-  elif auth_type == AuthType.BEARER:
-    fields = [ClassField(field_name='token', field_type='str', required=True)]
+  if auth_type == AuthType.BASIC.value:
+    fields.extend([ClassField(field_name='username', field_type='str', required=True), ClassField(field_name='password', field_type='str', required=True)])
+  elif auth_type == AuthType.BEARER.value:
+    fields.extend([ClassField(field_name='token', field_type='str', required=True)])
 
   class_def = generate_class_def(sdk_name, fields)
 
@@ -55,7 +54,7 @@ def construct_sdk(swagger_path: str,
                   sdk_name: str, 
                   output_path: str, 
                   base_url: str = None, 
-                  auth_type = AuthType.NONE,
+                  auth_type: AuthType = AuthType.NONE,
                   progress_callback: Callable[[float], None] = None) -> None:
   swagger = load_yaml(swagger_path)
   base_url = swagger.get('servers', [{}])[0].get('url') if not base_url else base_url
@@ -64,7 +63,6 @@ def construct_sdk(swagger_path: str,
 
   paths = swagger.get('paths', {})
   imports = generate_imports()
-
   class_def = generate_sdk_class(sdk_name, auth_type)
   types: List[ast.ClassDef] = []
 

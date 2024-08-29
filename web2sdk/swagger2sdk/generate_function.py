@@ -155,7 +155,7 @@ def generate_function_for_endpoint(endpoint: dict, auth_type: AuthType, types: T
         args=[],
         keywords=[]
       )))
-  if auth_type == AuthType.BASIC:
+  if auth_type == AuthType.BASIC.value:
     keyword_args.append(ast.keyword(arg='auth', value=ast.Call(
       func=ast.Name(id='HTTPBasicAuth', ctx=ast.Load()),
       args=[
@@ -164,7 +164,7 @@ def generate_function_for_endpoint(endpoint: dict, auth_type: AuthType, types: T
       ],
       keywords=[]
     )))
-  elif auth_type == AuthType.BEARER:
+  elif auth_type == AuthType.BEARER.value:
     keyword_args.append(ast.keyword(arg='headers', value=ast.Dict(
       keys=[ast.Constant(value='Authorization')],
       values=[ast.BinOp(

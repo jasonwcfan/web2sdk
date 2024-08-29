@@ -15,9 +15,9 @@ import ruamel.yaml
 from mitmproxy.exceptions import FlowReadException
 
 import console_util
-from api2swagger import swagger_util
-from api2swagger.har_capture_reader import HarCaptureReader, har_archive_heuristic
-from api2swagger.mitmproxy_capture_reader import (
+from web2swagger import swagger_util
+from web2swagger.har_capture_reader import HarCaptureReader, har_archive_heuristic
+from web2swagger.mitmproxy_capture_reader import (
     MitmproxyCaptureReader,
     mitmproxy_dump_file_huristic,
 )
