@@ -16,6 +16,10 @@
 
 Web2sdk is a set of tools for reverse engineering APIs. web2sdk records network requests tied to a particular URL, turns those requests into an OpenAPI schema, and converts the OpenAPI schema into a Python SDK using Python's abstract syntax trees (AST) module.
 
+
+https://github.com/user-attachments/assets/5a7f477d-76ab-46f2-9884-62dfc9f2715b
+
+
 ### Features
 - Generates an OpenAPI/Swagger yaml schema from any web-based flow
 - Automatically merges requests to the same endpoint
