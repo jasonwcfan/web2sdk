@@ -21,7 +21,7 @@ def generate_sdk_class(sdk_name: str, auth_type: AuthType) -> ast.ClassDef:
   # SDK should accept different arguments depending on the auth type
   auth_arguments = []
   fields = [
-    ClassField(field_name='base_url', field_type='str', required=True)
+    ClassField(field_name='hostname', field_type='str', required=True)
   ]
   if auth_type == AuthType.BASIC.value:
     fields.extend([ClassField(field_name='username', field_type='str', required=True), ClassField(field_name='password', field_type='str', required=True)])
@@ -39,8 +39,9 @@ def save_class_to_file(module: ast.Module, file_path: str) -> None:
 
 def generate_imports() -> List[ast.Import]:
   imports = [
-    ast.Import(names=[ast.alias(name='requests', asname=None)]),
-    ast.ImportFrom(module='requests.auth', names=[ast.alias(name='HTTPBasicAuth', asname=None)], level=0),
+    ast.Import(names=[ast.alias(name='json', asname=None)]),
+    ast.Import(names=[ast.alias(name='http.client', asname=None)]),
+    ast.ImportFrom(module='urllib.parse', names=[ast.alias(name='urlparse', asname=None)], level=0),
     ast.ImportFrom(module='pydantic', names=[ast.alias(name='BaseModel', asname=None)], level=0),
     ast.ImportFrom(module='typing', names=[
       ast.alias(name='Optional', asname=None), 
@@ -78,7 +79,7 @@ def construct_sdk(swagger_path: str,
         'responses': details.get('responses', None)
       }
       _types = generate_types(endpoint)
-      _function = generate_function_for_endpoint(endpoint, auth_type, _types)
+      _function = generate_function_for_endpoint(endpoint, base_url, auth_type, _types)
       class_def.body.append(_function)
       types.extend([t for t in _types if t is not None])
     if progress_callback:
