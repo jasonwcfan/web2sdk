@@ -24,7 +24,51 @@ https://github.com/user-attachments/assets/5a7f477d-76ab-46f2-9884-62dfc9f2715b
 - Automatically merges requests to the same endpoint
 - Generates pydantic classes based on OpenAPI request and response schemas
 - Supports `basic` and `bearer` auth schemes
-- Supports overriding default headers 
+- Supports overriding default headers
+
+### Example output
+```python
+import json
+import http.client
+from urllib.parse import urlparse
+from pydantic import BaseModel
+from typing import Optional, Dict, List, Any
+
+class GetConversationsRequestParameters(BaseModel):
+  offset: Optional[float] = None
+  limit: Optional[float] = None
+  order: Optional[str] = None
+
+class GetConversationsResponse(BaseModel):
+  items: Optional[List] = None
+  total: Optional[float] = None
+  limit: Optional[float] = None
+  offset: Optional[float] = None
+  has_missing_conversations: Optional[bool] = None
+
+class ChatGPTAPI(BaseModel):
+  hostname: str
+  token: str
+
+  def get_conversations(self, request_parameters:
+    GetConversationsRequestParameters, *, override_headers: dict={}
+    ) ->GetConversationsResponse:
+    conn = http.client.HTTPSConnection(self.hostname)
+    params = '&'.join([(k + '=' + v) for k, v in request_parameters.
+      items()])
+    headers = {'User-Agent': 'Web2sdk/1.0', 'Authorization': 'Bearer ' +
+      self.token}
+    headers.update(override_headers)
+    conn.request('GET', '/backend-api/conversations?' + params + '',
+      headers=headers)
+    res = conn.getresponse()
+    data = res.read().decode('utf-8')
+    return json.loads(data)
+
+  def post_conversation(self, request_body: PostConversationRequestBody,
+        *, override_headers: dict={}) ->Any
+### ...etc
+```
 
 ## Usage
 **1. Export HAR file**
