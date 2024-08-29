@@ -14,8 +14,7 @@
 </a>
 </p>
 
-Web2sdk is a set of tools for reverse engineering APIs. web2sdk records network requests tied to a particular URL, turns those requests into an OpenAPI schema, and converts the OpenAPI schema into a Python SDK using Python's abstract syntax trees (AST) module.
-
+Web2sdk is a set of tools for reverse engineering APIs by intercepting network requests. It processes HAR files exported from Chrome devtools into an OpenAPI schema, then automatically generates a python SDK based on the schema. Each method in the python SDK corresponds to an endpoint, and includes strongly typed arguments, requests, and responses.
 
 https://github.com/user-attachments/assets/5a7f477d-76ab-46f2-9884-62dfc9f2715b
 
@@ -25,27 +24,58 @@ https://github.com/user-attachments/assets/5a7f477d-76ab-46f2-9884-62dfc9f2715b
 - Automatically merges requests to the same endpoint
 - Generates pydantic classes based on OpenAPI request and response schemas
 - Supports `basic` and `bearer` auth schemes
+- Supports overriding default headers 
 
-### Usage
-1. Use [mitmweb](https://mitmproxy.org/) to record and export network traffic, or export a HAR file from Chrome devtools.
-![CleanShot 2024-08-27 at 21 11 53](https://github.com/user-attachments/assets/3453f33b-686b-476e-80e3-bd7df8c63f50)
+## Usage
+**1. Export HAR file**
+* Open Chrome devtools and go to "Network".
+* Go through a flow on a website that triggers the requests you want to capture and reverse engineer. The more varied the requests the better, as a single request might not capture all the possible request and response schemas for a particular endpoint.
+* Click the button shown below to export the HAR file. Don't worry about filtering out requests, that happens later.
+* Also compatible with [mitmweb](https://mitmproxy.org/) exports.
 
-2. Install web2sdk
-    ```sh
-    $ pip install web2sdk
-    ```
-3. Generate an OpenAPI spec and SDK. Only requests to urls that included the `base-url` will be included.
-    ```sh
-    $ web2sdk --requests-path <path/to/har/or/flow/file> --base-url <https://finic.ai/api/v1> --sdk-name FinicAPI --output <path/to/output>
-    ```
-    Generated files will be saved in the current directory if the `--output` flag is not provided.
+    ![CleanShot 2024-08-27 at 21 11 53](https://github.com/user-attachments/assets/3453f33b-686b-476e-80e3-bd7df8c63f50)
 
-### 🚧 Futre Improvements
-- Support for oauth and custom auth schemes that use header and url params
+**2. Install web2sdk**
+```
+$ pip install web2sdk
+```
+
+**3. Generate an OpenAPI spec and SDK**
+```sh
+$ web2sdk --requests-path <path/to/har/or/flow/file> --base-url <https://finic.ai/api/v1> --sdk-name FinicSDK --auth-type bearer
+```
+* `base-url` filters out requests that don't start with the url provided. This should include everything up until the endpoints you want to reverse engineer.
+* For example, `https://finic.ai/api/v1` will match only requests to the v1 endpiont, but `https://finic.ai/api` will match requests from v1, v2, and any other paths after `/api`.
+* Generated files will be saved to `generated/<sdk_name>.yaml` and `generated/<sdk_name>.py` in the current directory by default.
+
+**4. Run your python SDK.**
+```python
+from generated.FinicSDK import FinicSDK
+
+finic = FinicSDK(hostname="finic.ai", token="your_token_here")
+finic.get_connectors({})
+finic.post_message({ message: "hi there" }, override_headers={ "User-Agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7)" })
+```
+* Each method in the generated SDK corresponds to an endpoint
+* You can pass in any headers you want. By default, only `Authorization` and `User-Agent` headers are included.
+* Some methods accept parameters and/or request bodies. Inspect the function to see what arguments it takes.
+
+### Other Options
+```-- auth <basic|bearer>```
+* Optional, defaults to `none`. If set, the generated SDK class will expect a username and password for basic auth or a token for bearer auth.
+
+```--output```
+* Optional, defaults to `generated/` in the current directory. Specify a directory for the generated `.yaml` and `.py` files to be saved.
+
+```--interactive```
+* Run in interactive mode. Not well supported.
+
+## 🚧 Planned Improvements
+- Support for oauth and custom auth schemes. In the mean
 - Automatic auth token refresh
 - Support for templated API paths (e.g. `https://api.claude.ai/api/organizations/{organization_id}/chat_conversations`)
-- LLM integration to generate class names and example request payloads
+- Use LLMs to generate more readable class names, example request payloads, and other tasks that require fuzzy reasoning
 - Include a linter/formatter to make generated SDK more readable
 
 ### Acknowledgements
-Web2sdk's web2swagger module extends [mitmproxy2swagger](https://github.com/alufers/mitmproxy2swagger), but with some improvements to the OpenAPI schema generation.
+Web2sdk's includes a modified version of [mitmproxy2swagger](https://github.com/alufers/mitmproxy2swagger).
