@@ -39,6 +39,7 @@ def main():
     "-a",
     "--auth-type",
     help="Auth type to determine how the SDK should handle auth. Possible values: basic, bearer, none.",
+    default="none",
     required=False,
   )
 
@@ -61,8 +62,8 @@ def main():
   output_path = args.output.rstrip("/")
 
   if not args.interactive:
-    if not args.requests_path or not args.sdk_name or not args.base_url or not args.auth_type:
-      parser.error("--requests-path, --sdk-name, --auth-type, and --base-url are required when not running in --interactive mode.")
+    if not args.requests_path or not args.sdk_name or not args.base_url:
+      parser.error("--requests-path, --sdk-name, and --base-url are required when not running in --interactive mode.")
     if args.auth_type and args.auth_type not in ["basic", "bearer", "none"]:
       parser.error("--auth-type must be one of 'basic', 'bearer', or 'none.")
     
