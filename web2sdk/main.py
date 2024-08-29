@@ -2,9 +2,9 @@ import argparse
 import os
 import sys
 from typing import Any, Optional, Sequence, Union
-from web2swagger.main import main as web2swagger_main
-from swagger2sdk.main import construct_sdk
-import console_util
+from web2sdk.web2swagger.main import main as web2swagger_main
+from web2sdk.swagger2sdk.main import construct_sdk
+from web2sdk import console_util
 
 def progress_callback(progress):
     console_util.print_progress_bar(progress, "Generating SDK...           ")

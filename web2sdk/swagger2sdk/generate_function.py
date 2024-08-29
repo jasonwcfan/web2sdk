@@ -1,7 +1,7 @@
 import ast
-from swagger2sdk.utils import AuthType, check_content_type, dash_to_snake
+from web2sdk.swagger2sdk.utils import AuthType, check_content_type, dash_to_snake
 from typing import Tuple, List
-from  urllib.parse import urlparse
+from urllib.parse import urlparse
 
 def content_type_to_ast_node(content_type: str, return_type: str) -> ast.Call:
   if check_content_type(content_type, ['application/json', 'application/x-www-form-urlencoded']):

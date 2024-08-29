@@ -6,9 +6,9 @@ from pydantic import BaseModel, ConfigDict, Field, ValidationError
 from abc import ABC, abstractmethod
 from typing import List, Optional, Dict, Any, Tuple, Type, Union, Callable
 from enum import Enum
-from swagger2sdk.generate_function import generate_function_for_endpoint
-from swagger2sdk.generate_types import generate_types, generate_class_def, ClassField
-from swagger2sdk.utils import AuthType, HTTPMethod
+from web2sdk.swagger2sdk.generate_function import generate_function_for_endpoint
+from web2sdk.swagger2sdk.generate_types import generate_types, generate_class_def, ClassField
+from web2sdk.swagger2sdk.utils import AuthType, HTTPMethod
 
 swagger_path = '/Users/jasonfan/Documents/code/web2sdk/web2sdk/specs.yml'
 

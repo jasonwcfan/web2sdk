@@ -1,9 +1,12 @@
 [tool.poetry]
 name = "web2sdk"
-version = "0.0.1"
+version = "0.0.2"
 description = "Reverse engineer third party APIs into python SDKs"
 authors = ["jasonwcfan <jason.wc.fan@gmail.com>"]
 readme = "README.md"
+packages = [
+    { include = "web2sdk" }
+]
 
 [tool.poetry.dependencies]
 python = "^3.10"
@@ -16,6 +19,9 @@ pydantic = "^2.8.2"
 pyyaml = "^6.0.2"
 requests = "^2.32.3"
 python-dotenv = "^1.0.1"
+
+[tool.poetry.scripts]
+web2sdk = "web2sdk.main:main"
 
 
 [build-system]

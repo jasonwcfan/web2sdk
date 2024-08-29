@@ -3,7 +3,7 @@ from pydantic import BaseModel, ConfigDict, Field, ValidationError
 from abc import ABC, abstractmethod
 from typing import List, Optional, Dict, Any, Tuple, Type, Union
 from enum import Enum
-from swagger2sdk.utils import YAMLToPydanticType, check_content_type, snake_to_pascal, dash_to_snake, strip_special_chars
+from web2sdk.swagger2sdk.utils import YAMLToPydanticType, check_content_type, snake_to_pascal, dash_to_snake, strip_special_chars
 
 class ClassField(BaseModel):
   field_name: str
